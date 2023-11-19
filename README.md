@@ -491,6 +491,7 @@ ab -n 1000 -c 100 granz.channel.b07.com/
 ```
 
 <img width="454" alt="image" src="https://github.com/NgurahErvan/Jarkom-Modul-3-B07-2023-/assets/114007640/b7936f97-ede4-4561-8b13-f62471825eca">
+
 ---
 ## SOAL 8
 ### Pertanyaan
@@ -580,59 +581,512 @@ lynx granz.channel.b07.com
 ---
 ## SOAL 11
 ### Pertanyaan
+Lalu buat untuk setiap request yang mengandung /its akan di proxy passing menuju halaman https://www.its.ac.id.
 
 ### Solusi
+Kita hanya perlu melakukan konfigurasi pada `/etc/nginx/sites-available/lb-jarkom-php` pada lb dengan kode seperti berikut ini
+```
+upstream backend  {
+server 10.12.3.1; #IP Lawine
+server 10.12.3.2; #IP Linie
+server 10.12.3.3; #IP Lugnar
+}
+
+server {
+
+listen 80;
+
+server_name granz.channel.b07.com;
+
+        location / {
+            proxy_pass http://backend;
+            proxy_set_header    X-Real-IP $remote_addr;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    Host $http_host;
+
+            auth_basic "Administrator'\''s Area";
+            auth_basic_user_file /etc/nginx/rahasiakita/.htpasswd;
+        }
+
+        location ~ /\.ht {
+            deny all;
+        }
+
+        location /its {
+            proxy_pass https://www.its.ac.id;
+        }
+
+error_log /var/log/nginx/lb_error.log;
+access_log /var/log/nginx/lb_access.log;
+
+}
+```
+terdapat penambahan untuk proxy_pass yang mengarah ke website its
+apabila dilakukan tes menggunakan 
+```
+lynx granz.channel.b07.com/its
+```
+maka hasilnya :
+![img](image/11-1.png)
 
 ---
 ## SOAL 12
 ### Pertanyaan
+Selanjutnya LB ini hanya boleh diakses oleh client dengan IP [Prefix IP].3.69, [Prefix IP].3.70, [Prefix IP].4.167, dan [Prefix IP].4.168
 
 ### Solusi
+kita juga melakukan perubahan pada lb untuk soal ini, dengan perubahan ini maka akan dapat dilakukan akses untuk ip yang sudah ditentukan dengan melakukan perubahan pada `/etc/nginx/sites-available/lb-jarkom-php`
+berikut merupakan hasil kodenya:
+```
+upstream backend  {
+server 10.12.3.1; #IP Lawine
+server 10.12.3.2; #IP Linie
+server 10.12.3.3; #IP Lugnar
+}
+
+server {
+
+listen 80;
+
+server_name granz.channel.b07.com;
+
+        location / {
+            allow       10.12.3.69;
+            allow       10.12.3.70;
+            allow       10.12.4.167;
+            allow       10.12.4.178;
+            deny        all;
+
+            proxy_pass http://backend;
+            proxy_set_header    X-Real-IP $remote_addr;
+            proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header    Host $http_host;
+
+            auth_basic "Administrator'\''s Area";
+            auth_basic_user_file /etc/nginx/rahasiakita/.htpasswd;
+        }
+
+        location ~ /\.ht {
+            deny all;
+        }
+
+        location /its {
+            proxy_pass https://www.its.ac.id;
+        }
+
+error_log /var/log/nginx/lb_error.log;
+access_log /var/log/nginx/lb_access.log;
+}
+```
+untuk melakukan pengetes an kita akan mencoba 2 kali, dengan ip yang tidak sesuai dan juga 1 lagi, kita melakukan perubahan sedikit pada kode, kita melihat ip salah satu client kemudian menambahkan `allow 10.12.4.12;` hanya untuk melakukan pengetes an, berikut hasil dari ip yang salah dan ip yang sesuai.
+- ip salah
+![img](image/12-1.png)
+- ip benar
+![img](image/12-2.png)
 
 ---
 ## SOAL 13
 ### Pertanyaan
+Semua data yang diperlukan, diatur pada Denken dan harus dapat diakses oleh Frieren, Flamme, dan Fern.
 
 ### Solusi
+pada soal ini kami melakukan setup database pada `denken` untuk bisa menjalankan database yang di akses ketiga worker laravel, berikut langkahnya
+```
+apt-get update
+apt-get install mariadb-server -y
+service mysql start
+```
+kemudian membuat username password dan database untuk bisa di akses di ketiga worker dengan membuka mysql terlebih dahulu
+```
+mysql
+```
+kemudian
+```
+CREATE USER 'kelompokb07'@'%' IDENTIFIED BY 'passwordb07';
+CREATE USER 'kelompokb07'@'localhost' IDENTIFIED BY 'passwordb07';
+CREATE DATABASE dbkelompokb07;
+GRANT ALL PRIVILEGES ON *.* TO 'kelompokb07'@'%';
+GRANT ALL PRIVILEGES ON *.* TO 'kelompokb07'@'localhost';
+FLUSH PRIVILEGES;
+```
+keluar dari mysql dengan `\q`
+
+langkah selanjutnya adalah dengan menambahkan konfigurasi pada `/etc/mysql/my.cnf`
+dengan mengisikan sebagai berikut
+```
+[client-server]
+
+# Import all .cnf files from configuration directory
+!includedir /etc/mysql/conf.d/
+!includedir /etc/mysql/mariadb.conf.d/
+
+[mysqld]
+skip-networking=0
+skip-bind-address
+```
+restart mysql
+```
+service mysql restart
+```
+
+lakukan testing pada ketiga worker laravel apakah sudah bisa melakukan akses ke database yang sudah di set di denken, namun harus melakukan install terlebih dahulu mariadb pada worker laravel
+```
+apt-get update
+apt-get install mariadb-client -y
+```
+dan akses database dengan command berikut
+```
+mariadb --host=10.12.2.1 --port=3306 --user=kelompokb07 --password=passwordb07
+```
+kemudian apabila sudah terhubung maka akses database dengan menampilkan database yang sudah terbuat, apakah database yang dibuat di denken sudah bisa di akses. berikut hasilnya
+![img](image/13-1.png)
 
 ---
 ## SOAL 14
 ### Pertanyaan
+Frieren, Flamme, dan Fern memiliki Riegel Channel sesuai dengan quest guide berikut. Jangan lupa melakukan instalasi PHP8.0 dan Composer
 
 ### Solusi
+kami melakukan instalasi laravel dan melakukan deploy pada ketiga worker laravel dengan beberapa langkah berikut
+```
+apt-get install -y lsb-release ca-certificates apt-transport-https software-properties-common gnupg2
+curl -sSLo /usr/share/keyrings/deb.sury.org-php.gpg https://packages.sury.org/php/apt.gpg
+sh -c 'echo "deb [signed-by=/usr/share/keyrings/deb.sury.org-php.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list'
+apt-get update
+apt-get install php8.0-mbstring php8.0-xml php8.0-cli php8.0-common php8.0-intl php8.0-opcache php8.0-readline php8.0-mysql php8.0-fpm php8.0-curl unzip wget -y
+apt-get install nginx -y
+```
+setelah melakukan instalasi untuk php8.0, kita juga melakukan instalasi composer dengan command berikut
+```
+wget https://getcomposer.org/download/2.0.13/composer.phar
+chmod +x composer.phar
+mv composer.phar /usr/bin/composer
+```
+kemudian melakukan instalasi git dan melakukan clone dari github laravel praktikum yang sudah disediakan
+```
+apt-get install git -y
+cd /var/www
+git clone https://github.com/martuafernando/laravel-praktikum-jarkom.git
+cd laravel-praktikum-jarkom
+composer update
+composer install
+```
+lakukan edit pada .env dengan copy atau rename dari `.env.example` ke `.env`
+```
+cp .env.example .env
+```
+edit pada file .env tersebut seperti berikut
+```
+APP_NAME=Laravel
+APP_ENV=local
+APP_KEY=base64:FMAdHCoIH+DQ7mcVuaRd31G8ZvitSNWM/MIsehhilE0=
+APP_DEBUG=true
+APP_URL=http://localhost
+
+LOG_CHANNEL=stack
+LOG_DEPRECATIONS_CHANNEL=null
+LOG_LEVEL=debug
+
+DB_CONNECTION=mysql
+DB_HOST=10.12.2.1
+DB_PORT=3306
+DB_DATABASE=dbkelompokb07
+DB_USERNAME=kelompokb07
+DB_PASSWORD=passwordb07
+
+BROADCAST_DRIVER=log
+CACHE_DRIVER=file
+FILESYSTEM_DISK=local
+QUEUE_CONNECTION=sync
+SESSION_DRIVER=file
+SESSION_LIFETIME=120
+
+MEMCACHED_HOST=127.0.0.1
+
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+
+MAIL_MAILER=smtp
+MAIL_HOST=mailpit
+MAIL_PORT=1025
+MAIL_USERNAME=null
+MAIL_PASSWORD=null
+MAIL_ENCRYPTION=null
+MAIL_FROM_ADDRESS="hello@example.com"
+MAIL_FROM_NAME="${APP_NAME}"
+
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_DEFAULT_REGION=us-east-1
+AWS_BUCKET=
+AWS_USE_PATH_STYLE_ENDPOINT=false
+
+PUSHER_APP_ID=
+PUSHER_APP_KEY=
+PUSHER_APP_SECRET=
+PUSHER_HOST=
+PUSHER_PORT=443
+PUSHER_SCHEME=https
+PUSHER_APP_CLUSTER=mt1
+
+VITE_PUSHER_APP_KEY="${PUSHER_APP_KEY}"
+VITE_PUSHER_HOST="${PUSHER_HOST}"
+VITE_PUSHER_PORT="${PUSHER_PORT}"
+VITE_PUSHER_SCHEME="${PUSHER_SCHEME}"
+VITE_PUSHER_APP_CLUSTER="${PUSHER_APP_CLUSTER}"
+```
+menyesuaikan dengan database kelompok.
+kemudian kita harus menjalankan beberapa command artisan untuk melakukan deploy
+```
+php artisan migrate:fresh
+php artisan db:seed --class=AiringsTableSeeder
+php artisan key:generate
+php artisan config:cache
+php artisan storage:link
+php artisan jwt:secret
+php artisan config:clear
+chown -R www-data.www-data /var/www/laravel-praktikum-jarkom/storage
+```
+kemudian membuat file pada nginx untuk dapat di akses, buat file dengan
+```
+touch /etc/nginx/sites-available/riegel.canyon.b07.com
+```
+kemudian isikan seperti berikut
+```
+server {
+
+    listen 80;
+
+    root /var/www/laravel-praktikum-jarkom/public;
+
+    index index.php index.html index.htm;
+    server_name _;
+
+    location / {
+            try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    # pass PHP scripts to FastCGI server
+    location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass unix:/var/run/php/php8.0-fpm.sock;
+    }
+
+    location ~ /\.ht {
+            deny all;
+    }
+
+    error_log /var/log/nginx/implementasi_error.log;
+    access_log /var/log/nginx/implementasi_access.log;
+}
+```
+dan terakhir jalankan
+```
+ln -s /etc/nginx/sites-available/riegel.canyon.b07.com /etc/nginx/sites-enabled/
+service php8.0-fpm start
+service nginx start
+```
+maka website laravel sudah dapat di akses, coba lakukan akses pada client dengan melakukan lynx
+```
+lynx riegel.canyon.b07.com
+```
+maka akan muncul tampilan berikut
+![img](image/14-1.png)
 
 ---
 ## SOAL 15
 ### Pertanyaan
+Riegel Channel memiliki beberapa endpoint yang harus ditesting sebanyak 100 request dengan 10 request/second. Tambahkan response dan hasil testing pada grimoire.
+POST /auth/register
 
 ### Solusi
+kita memerlukan file tambahan berupa json untuk melakukan registrasi pada website ini dengan membuat file `register.json` pada root client yang ingin melakukan pengetestan, dengan isi sebagai berikut
+```
+{
+    "username": "kelompokb07",
+    "password": "passwordb07"
+}
+```
+kemudian jalankan command berikut
+```
+ab -n 100 -c 10 -p register.json -T application/json http://riegel.canyon.b07.com/api/auth/register
+```
+dan juga pantau pada worker untuk mengetahui proses tersebut sedang berjalan dengan menggunakan
+```
+htop
+```
+maka hasilnya sebagai berikut
+![img](image/15-1.png)
+![img](image/15-2.png)
+NOTE : hanya berhasil 1 proses karena username dan password tersebut hanya di terima unique atau tidak bisa ganda dan sama.
 
 ---
 ## SOAL 16
 ### Pertanyaan
+Riegel Channel memiliki beberapa endpoint yang harus ditesting sebanyak 100 request dengan 10 request/second. Tambahkan response dan hasil testing pada grimoire.
+POST /auth/login
 
 ### Solusi
+kita memerlukan file tambahan berupa json untuk melakukan login pada website ini dengan membuat file `login.json` pada root client yang ingin melakukan pengetestan, dengan isi sebagai berikut
+```
+{
+    "username": "kelompokb07",
+    "password": "passwordb07"
+}
+```
+kemudian jalankan command berikut
+```
+ab -n 100 -c 10 -p login.json -T application/json http://riegel.canyon.b07.com/api/auth/login
+```
+dan juga pantau pada worker untuk mengetahui proses tersebut sedang berjalan dengan menggunakan
+```
+htop
+```
+maka hasilnya sebagai berikut
+![img](image/16-1.png)
+![img](image/16-2.png)
 
 ---
 ## SOAL 17
 ### Pertanyaan
+Riegel Channel memiliki beberapa endpoint yang harus ditesting sebanyak 100 request dengan 10 request/second. Tambahkan response dan hasil testing pada grimoire.
+GET /me
 
 ### Solusi
+pada request ini sedikit berbeda, kita memerlukan token yang diambil, untuk bisa mendapatkannya maka pertama jalankan berikut
+```
+curl -X POST -H "Content-Type: application/json" -d @login.json http://riegel.canyon.b07.com/api/auth/login > apiLog.txt
+```
+kemudian jalankan untuk di set global
+```
+token=$(cat apiLog.txt | jq -r '.token')
+```
+dan lakukan request dengan
+```
+ab -n 100 -c 10 -H "Authorization: Bearer $token" http://riegel.canyon.b07.com/api/me
+```
+dan juga pantau pada worker untuk mengetahui proses tersebut sedang berjalan dengan menggunakan
+```
+htop
+```
+maka hasilnya sebagai berikut
+![img](image/17-1.png)
+![img](image/17-2.png)
 
 ---
 ## SOAL 18
 ### Pertanyaan
+Untuk memastikan ketiganya bekerja sama secara adil untuk mengatur Riegel Channel maka implementasikan Proxy Bind pada Eisen untuk mengaitkan IP dari Frieren, Flamme, dan Fern.
 
 ### Solusi
+untuk memastikan semua berjalan secara adil, kita hanya menggunakan lb, karena pada dasarnya lb atau load balancer sendiri digunakan untuk membagi rata kerja dari 3 worker laravel dengan melakukan edit konfigurasi dengan command pada `eisen` dengan
+```
+nano /etc/nginx/sites-available/lb-jarkom-laravel
+```
+kemudian ubah seperti berikut ini
+```
+upstream laravel {
+        server 10.12.4.1:8001;
+        server 10.12.4.2:8002;
+        server 10.12.4.3:8003;
+}
+
+server {
+        listen 80;
+        server_name riegel.canyon.b07.com;
+
+        location / {
+                proxy_pass http://laravel;
+        }
+}
+```
+kemudian lakukan testing kembali dengan menggunakan client dan akan menghasilkan 3 proses pada worker dan hasil pada client, hasilnya sebagai berikut
+![img](image/18-1.png)
+![img](image/18-2.png)
 
 ---
 ## SOAL 19
 ### Pertanyaan
+Untuk meningkatkan performa dari Worker, coba implementasikan PHP-FPM pada Frieren, Flamme, dan Fern. Untuk testing kinerja naikkan 
+- pm.max_children
+- pm.start_servers
+- pm.min_spare_servers
+- pm.max_spare_servers
+sebanyak tiga percobaan dan lakukan testing sebanyak 100 request dengan 10 request/second kemudian berikan hasil analisisnya pada Grimoire.
 
 ### Solusi
+untuk soal ini kita harus melakukan set pada pool dengan 
+```
+nano /etc/php/7.3/fpm/pool.d/www.conf
+```
+kemudian isikan berikut
+```
+[www]
+user = www-data
+group = www-data
+listen = /run/php/php7.3-fpm.sock
+listen.owner = www-data
+listen.group = www-data
+php_admin_value[disable_functions] = exec,passthru,shell_exec,system
+php_admin_flag[allow_url_fopen] = off
+
+; Choose how the process manager will control the number of child processes.
+
+pm = dynamic
+pm.max_children = 75
+pm.start_servers = 10
+pm.min_spare_servers = 5
+pm.max_spare_servers = 20
+```
+dan restart
+```
+service php7.3-fpm start
+service php7.3-fpm restart
+service nginx restart
+```
+kemudian berikut merupakan hasilnya
+![img](image/19-1.png)
+![img](image/19-2.png)
+![img](image/19-3.png)
+![img](image/19-4.png)
+![img](image/19-5.png)
+![img](image/19-6.png)
 
 ---
 ## SOAL 20
 ### Pertanyaan
+Nampaknya hanya menggunakan PHP-FPM tidak cukup untuk meningkatkan performa dari worker maka implementasikan Least-Conn pada Eisen. Untuk testing kinerja dari worker tersebut dilakukan sebanyak 100 request dengan 10 request/second.
 
 ### Solusi
+kita hanya sedikit melakukan perubahan pada lb `eisen` sebagai berikut
+```
+nano /etc/nginx/sites-available/lb-jarkom-laravel
+```
+dan ditambahkan algoritma `least_conn;` berikut
+```
+upstream laravel {
+        least_conn;
+        server 10.12.4.1:8001;
+        server 10.12.4.2:8002;
+        server 10.12.4.3:8003;
+}
+
+server {
+        listen 80;
+        server_name riegel.canyon.b07.com;
+
+        location / {
+                proxy_pass http://laravel;
+        }
+
+}
+```
+dan lakukan restart
+```
+service php7.3-fpm start
+service php7.3-fpm restart
+service nginx restart
+```
+dan berikut hasil setelah dilakukan percobaan request
+![img](image/20-1.png)
