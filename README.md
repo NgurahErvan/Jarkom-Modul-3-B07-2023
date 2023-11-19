@@ -38,7 +38,7 @@
 melakukan register domain berupa riegel.canyon.yyy.com untuk worker Laravel dan granz.channel.yyy.com untuk worker PHP (0) mengarah pada worker yang memiliki IP [prefix IP].x.1.
 ### Solusi
 pada soal 0 kita diminta untuk membuat domain untuk  worker laravel berupa riegel.canyon.B07.com dan worker PHP berupa granz.channel.B07.com dan mengarah pada worker yang memiliki IP [prefix IP].x.1. Caranya yaitu kita perlu menjalankan perintah dibawah yang terdapat dalam Script.sh yang kami miliki
-
+## Heiter
 ```
 echo nameserver 192.168.122.1 > /etc/resolv.conf
 apt-get update
@@ -96,7 +96,7 @@ $TTL    604800
 
 service bind9 restart
 ```
-##Testing
+## Testing
 Selanjutnya kita bisa melakukan test apakah domain tersebut sudah berjalan atau belum dengan cara melakukan ping kepada client tersebut melalui client
 
 <img width="359" alt="image" src="https://github.com/NgurahErvan/Jarkom-Modul-3-B07-2023-/assets/114007640/9cef7a44-736f-4c74-8086-c688a5609bda">
@@ -225,6 +225,7 @@ iface eth0 inet dhcp
 Client yang melalui Switch3 mendapatkan range IP dari [prefix IP].3.16 - [prefix IP].3.32 dan [prefix IP].3.64 - [prefix IP].3.80 
 ### Solusi
 Pada soal kedua kita diminta untuk semua Client yang melalui Switch3 mendapatkan range IP dari [prefix IP].3.16 - [prefix IP].3.32 dan [prefix IP].3.64 - [prefix IP].3.80. Caranya yaitu kita perlu menjalankan perintah pada Script.sh yang sudah kita miliki seperti dibawah ini
+## Himmel
 ```
 echo '
 subnet 10.12.1.0 netmask 255.255.255.0 {
@@ -246,6 +247,7 @@ subnet 10.12.3.0 netmask 255.255.255.0 {
 Client yang melalui Switch4 mendapatkan range IP dari [prefix IP].4.12 - [prefix IP].4.20 dan [prefix IP].4.160 - [prefix IP].4.168
 ### Solusi
 pada soal ketiga kita diminta untuk semua Client yang melalui Switch4 mendapatkan range IP dari [prefix IP].4.12 - [prefix IP].4.20 dan [prefix IP].4.160 - [prefix IP].4.168. caranya kita hanya perlu menambahkan sedikit script.sh yang kita miliki
+## Himmel
 ```
 echo '
 subnet 10.12.1.0 netmask 255.255.255.0 {
@@ -271,6 +273,7 @@ subnet 10.12.4.0 netmask 255.255.255.0 {
 Client mendapatkan DNS dari Heiter dan dapat terhubung dengan internet melalui DNS tersebut
 ### Solusi
 pada pertanyaan 4 kita diminta agar Client mendapatkan DNS dari Heiter dan dapat terhubung dengan internet melalui DNS tersebut. Caranya yaitu kita hanya perlu melengkapi sedikit konfigurasi dari no 2 dan 3 pada script.sh kita berupa
+## Himmel
 ```
 echo '
 subnet 10.12.1.0 netmask 255.255.255.0 {
@@ -300,6 +303,7 @@ subnet 10.12.4.0 netmask 255.255.255.0 {
 }' /etc/dhcp/dhcpd.conf
 ```
 Kemudian agar client dapat terhubung kepada internet kita perlu melakukan DNS Forwarder dari Heiter. Caranya yaitu pada `/etc/bind/named.conf.options` Uncomment pada bagian dibawah ini
+## Heiter
 ```
 forwarders {
     192.168.122.1;
