@@ -2,7 +2,7 @@
 > Laporan Resmi Praktikum 3 Jaringan Komputer B07
 ***
 ## Anggota Kelompok B07
-1. I Gusti Ngurah Ervan Juli Ardana (5025211295)
+1. I Gusti Ngurah Ervan Juli Ardana (5025211205)
 2. Danar Sodik Priyambodo (5025211145)
 
 ## Daftar isi
